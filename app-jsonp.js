@@ -28,6 +28,7 @@ function assetApp() {
         },
 
         init() {
+            console.log('App initialized');
             this.loadAssets();
             this.generateNomorItem();
         },
@@ -36,6 +37,7 @@ function assetApp() {
         generateNomorItem() {
             const timestamp = Date.now().toString().slice(-6);
             this.form.nomorItem = timestamp;
+            console.log('Generated nomor item:', this.form.nomorItem);
         },
 
         // Handle file selection
@@ -57,6 +59,7 @@ function assetApp() {
                 }
 
                 this.selectedFile = file;
+                console.log('File selected:', file.name);
                 
                 // Create preview
                 const reader = new FileReader();
@@ -82,8 +85,9 @@ function assetApp() {
             );
         },
 
-        // Load all assets dengan JSONP
+        // Load all assets dengan JSONP dan debugging
         loadAssets() {
+            console.log('Loading assets...');
             this.loading = true;
             
             // Create unique callback name
@@ -92,14 +96,18 @@ function assetApp() {
             // Create script element for JSONP
             const script = document.createElement('script');
             script.src = `${SCRIPT_URL}?action=getAssets&callback=${callbackName}`;
+            console.log('Loading from URL:', script.src);
             
             // Define callback function
             window[callbackName] = (data) => {
+                console.log('Received data:', data);
                 try {
                     if (data.success) {
                         this.assets = data.assets || [];
                         this.totalAssets = this.assets.length;
+                        console.log('Assets loaded successfully:', this.assets.length);
                     } else {
+                        console.error('Server error:', data.message);
                         this.showNotification(data.message || 'Gagal memuat data', 'error');
                     }
                 } catch (error) {
@@ -114,8 +122,8 @@ function assetApp() {
             };
             
             // Handle error
-            script.onerror = () => {
-                console.error('JSONP request failed');
+            script.onerror = (error) => {
+                console.error('JSONP request failed:', error);
                 this.showNotification('Gagal terhubung ke server', 'error');
                 this.loading = false;
                 delete window[callbackName];
@@ -126,58 +134,57 @@ function assetApp() {
             document.head.appendChild(script);
         },
 
-        // Submit new asset dengan JSONP
+        // Submit new asset dengan JSONP dan debugging
         submitAsset() {
+            console.log('Submitting asset...');
+            console.log('Form data:', this.form);
+            
             if (!this.validateForm()) {
                 return;
             }
 
             this.loading = true;
             
-            // Upload image first if exists
-            if (this.selectedFile) {
-                this.uploadImage(this.selectedFile).then(imageUrl => {
-                    if (imageUrl) {
-                        this.form.foto = imageUrl;
-                    }
-                    this.submitAssetData();
-                }).catch(error => {
-                    console.error('Error uploading image:', error);
-                    this.showNotification('Gagal mengupload foto', 'error');
-                    this.loading = false;
-                });
-            } else {
-                this.submitAssetData();
-            }
+            // Skip image upload for now - focus on text data first
+            this.submitAssetData();
         },
 
-        // Submit asset data dengan JSONP
+        // Submit asset data dengan JSONP dan proper parameter handling
         submitAssetData() {
+            console.log('Submitting asset data...');
+            
             const callbackName = 'callback_submit_' + Date.now();
             
-            // Build query string
+            // Build URL with parameters properly
             const params = new URLSearchParams();
             params.append('action', 'addAsset');
             params.append('callback', callbackName);
             
+            // Add form data
             Object.keys(this.form).forEach(key => {
                 if (this.form[key]) {
                     params.append(key, this.form[key]);
+                    console.log(`Adding parameter: ${key} = ${this.form[key]}`);
                 }
             });
             
+            const url = `${SCRIPT_URL}?${params.toString()}`;
+            console.log('Submit URL:', url);
+            
             // Create script element
             const script = document.createElement('script');
-            script.src = `${SCRIPT_URL}?${params.toString()}`;
+            script.src = url;
             
             // Define callback function
             window[callbackName] = (data) => {
+                console.log('Submit response:', data);
                 try {
                     if (data.success) {
                         this.showNotification('Aset berhasil disimpan!', 'success');
                         this.resetForm();
                         this.loadAssets();
                     } else {
+                        console.error('Submit error:', data.message);
                         this.showNotification(data.message || 'Gagal menyimpan aset', 'error');
                     }
                 } catch (error) {
@@ -191,8 +198,8 @@ function assetApp() {
             };
             
             // Handle error
-            script.onerror = () => {
-                console.error('JSONP submit failed');
+            script.onerror = (error) => {
+                console.error('JSONP submit failed:', error);
                 this.showNotification('Gagal terhubung ke server', 'error');
                 this.loading = false;
                 delete window[callbackName];
@@ -203,30 +210,26 @@ function assetApp() {
             document.head.appendChild(script);
         },
 
-        // Upload image dengan JSONP (fallback method)
-        async uploadImage(file) {
-            // For now, skip image upload due to JSONP limitations with file uploads
-            // You can implement a separate image upload service or use base64
-            this.showNotification('Foto dilewati karena keterbatasan teknis', 'info');
-            return null;
-        },
-
         // Validate form
         validateForm() {
+            console.log('Validating form...');
             const required = ['tanggal', 'nomorItem', 'namaItem', 'jenisItem', 'kondisi', 'bahan', 'gedung', 'ruang', 'pencatat'];
             
             for (let field of required) {
                 if (!this.form[field]) {
+                    console.error('Missing required field:', field);
                     this.showNotification(`Field ${field} harus diisi`, 'error');
                     return false;
                 }
             }
             
+            console.log('Form validation passed');
             return true;
         },
 
         // Reset form
         resetForm() {
+            console.log('Resetting form...');
             this.form = {
                 tanggal: new Date().toISOString().split('T')[0],
                 nomorItem: '',
@@ -256,6 +259,7 @@ function assetApp() {
 
         // Show notification
         showNotification(message, type = 'info') {
+            console.log('Notification:', message, type);
             this.notification = {
                 show: true,
                 type: type,
@@ -287,6 +291,7 @@ function formatFileSize(bytes) {
 
 // Prevent zoom on input focus (mobile)
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded');
     const inputs = document.querySelectorAll('input, select, textarea');
     inputs.forEach(input => {
         input.addEventListener('focus', function() {
