@@ -72,6 +72,27 @@
 
         <!-- Main Content -->
         <main class="container mx-auto px-4 py-8">
+            <!-- Debug Section (Hanya untuk troubleshooting) -->
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-tools text-yellow-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-yellow-700">
+                            <strong>Debug Tools:</strong> 
+                            <button @click="testAPIConnection()" class="bg-yellow-500 text-white px-3 py-1 rounded text-sm ml-2 hover:bg-yellow-600">
+                                🧪 Test API Connection
+                            </button>
+                            <button @click="showDebugInfo()" class="bg-blue-500 text-white px-3 py-1 rounded text-sm ml-2 hover:bg-blue-600">
+                                📊 Show Debug Info
+                            </button>
+                            <span class="ml-2 text-xs">API Status: <span x-text="apiStatus" class="font-bold"></span></span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Alert Messages -->
             <div x-show="alert.show" 
                  x-transition:enter="transition ease-out duration-300"
@@ -436,7 +457,7 @@
             <div class="container mx-auto px-4 py-6">
                 <div class="flex flex-col md:flex-row justify-between items-center">
                     <div class="mb-4 md:mb-0">
-                        <p class="text-sm">&copy; 2024 Sistem Pendataan Aset Sekolah. All rights reserved.</p>
+                        <p class="text-sm">© 2024 Sistem Pendataan Aset Sekolah. All rights reserved.</p>
                     </div>
                     <div class="flex items-center space-x-4 text-sm">
                         <span><i class="fas fa-database mr-1"></i> Google Sheets</span>
@@ -457,6 +478,7 @@
                 photoSize: 0,
                 photoBlob: null,
                 activeUsers: Math.floor(Math.random() * 5) + 1,
+                apiStatus: 'Unknown',
                 alert: {
                     show: false,
                     type: 'info',
@@ -482,28 +504,77 @@
 
                 init() {
                     // Initialize API
-                    this.api = new AssetAPI();
+                    try {
+                        this.api = new AssetAPI();
+                        this.apiStatus = 'Loaded';
+                        console.log('✅ API initialized successfully');
+                    } catch (error) {
+                        this.apiStatus = 'Error';
+                        console.error('❌ API initialization failed:', error);
+                        this.showAlert('error', 'API initialization failed: ' + error.message);
+                    }
                     
                     this.generateNomorItem();
                     this.loadRecentData();
                     this.simulateActiveUsers();
                 },
 
+                // DEBUG FUNCTIONS
+                async testAPIConnection() {
+                    console.log('🔍 Testing API Connection...');
+                    this.showAlert('info', 'Testing API connection...');
+                    
+                    try {
+                        console.log('API URL:', this.api.scriptURL);
+                        console.log('Development mode:', this.api.isDevelopment);
+                        
+                        const response = await this.api.generateNomorItem();
+                        console.log('✅ API Response:', response);
+                        
+                        this.apiStatus = 'Connected';
+                        this.showAlert('success', 'API Connection OK! Nomor: ' + response.nomorItem);
+                    } catch (error) {
+                        console.error('❌ API Error:', error);
+                        this.apiStatus = 'Failed';
+                        this.showAlert('error', 'API Connection Failed: ' + error.message);
+                    }
+                },
+
+                showDebugInfo() {
+                    const debugInfo = {
+                        apiStatus: this.apiStatus,
+                        apiUrl: this.api ? this.api.scriptURL : 'Not loaded',
+                        developmentMode: this.api ? this.api.isDevelopment : 'Unknown',
+                        formData: this.formData,
+                        recentDataCount: this.recentData.length,
+                        userAgent: navigator.userAgent,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    console.log('📊 Debug Info:', debugInfo);
+                    alert('Debug info logged to console. Press F12 to view.');
+                    this.showAlert('info', 'Debug info logged to console (F12)');
+                },
+
                 async generateNomorItem() {
                     try {
-                        const response = await this.api.generateNomorItem();
-                        if (response.success) {
-                            this.formData.nomorItem = response.nomorItem;
+                        if (this.api) {
+                            const response = await this.api.generateNomorItem();
+                            if (response.success) {
+                                this.formData.nomorItem = response.nomorItem;
+                                console.log('✅ Generated nomor from API:', response.nomorItem);
+                            } else {
+                                throw new Error(response.message || 'API returned error');
+                            }
                         } else {
-                            // Fallback to local generation
-                            const random = Math.floor(Math.random() * 1000000);
-                            this.formData.nomorItem = random.toString().padStart(6, '0');
+                            throw new Error('API not initialized');
                         }
                     } catch (error) {
                         console.error('Error generating nomor item:', error);
                         // Fallback to local generation
                         const random = Math.floor(Math.random() * 1000000);
                         this.formData.nomorItem = random.toString().padStart(6, '0');
+                        console.log('🔄 Using fallback nomor:', this.formData.nomorItem);
                     }
                 },
 
@@ -639,13 +710,17 @@
                     this.loading = true;
                     
                     try {
+                        console.log('🚀 Submitting form...', this.formData);
+                        
                         // Upload photo if exists
-                        if (this.photoBlob) {
+                        if (this.photoBlob && this.api) {
+                            console.log('📷 Uploading photo...');
                             const photoUrl = await this.uploadPhoto(this.photoBlob);
                             this.formData.foto = photoUrl;
                         }
                         
                         // Save to Google Sheets via Google Apps Script
+                        console.log('💾 Saving data...');
                         const response = await this.saveToGoogleSheets(this.formData);
                         
                         if (response.success) {
@@ -656,6 +731,7 @@
                             this.showAlert('error', 'Gagal menyimpan data: ' + response.message);
                         }
                     } catch (error) {
+                        console.error('❌ Submit error:', error);
                         this.showAlert('error', 'Terjadi kesalahan: ' + error.message);
                     } finally {
                         this.loading = false;
@@ -664,40 +740,47 @@
 
                 async uploadPhoto(blob) {
                     try {
+                        console.log('📤 Starting photo upload...');
                         // Convert blob to base64
                         const base64Data = await this.api.fileToBase64(blob);
                         const fileName = `asset_${this.formData.nomorItem}_${Date.now()}.jpg`;
                         
+                        console.log('📤 Sending to API...');
                         const response = await this.api.uploadPhoto(base64Data, fileName, 'image/jpeg');
                         
                         if (response.success) {
+                            console.log('✅ Photo uploaded:', response.fileUrl);
                             return response.fileUrl;
                         } else {
                             throw new Error(response.message || 'Failed to upload photo');
                         }
                     } catch (error) {
-                        console.error('Error uploading photo:', error);
+                        console.error('❌ Upload error:', error);
                         throw error;
                     }
                 },
 
                 async saveToGoogleSheets(data) {
                     try {
+                        console.log('💾 Starting save to Google Sheets...');
+                        
                         // Validate data before sending
                         const errors = this.api.validateAssetData(data);
                         if (errors.length > 0) {
                             throw new Error('Validation error: ' + errors.join(', '));
                         }
                         
+                        console.log('📤 Sending data to API...');
                         const response = await this.api.saveAsset(data);
                         
                         if (response.success) {
+                            console.log('✅ Data saved successfully:', response);
                             return response;
                         } else {
                             throw new Error(response.message || 'Failed to save data');
                         }
                     } catch (error) {
-                        console.error('Error saving to Google Sheets:', error);
+                        console.error('❌ Save error:', error);
                         throw error;
                     }
                 },
@@ -725,18 +808,23 @@
 
                 async loadRecentData() {
                     try {
-                        const response = await this.api.getRecentAssets(10);
-                        
-                        if (response.success) {
-                            this.recentData = response.data;
+                        console.log('📋 Loading recent data...');
+                        if (this.api) {
+                            const response = await this.api.getRecentAssets(10);
+                            
+                            if (response.success) {
+                                this.recentData = response.data;
+                                console.log('✅ Recent data loaded:', response.data.length, 'items');
+                            } else {
+                                console.error('Failed to load recent data:', response.message);
+                                this.recentData = [];
+                            }
                         } else {
-                            console.error('Failed to load recent data:', response.message);
-                            // Fallback to empty array
+                            console.warn('API not available, using empty data');
                             this.recentData = [];
                         }
                     } catch (error) {
                         console.error('Error loading recent data:', error);
-                        // Fallback to empty array
                         this.recentData = [];
                     }
                 },
