@@ -1,7 +1,7 @@
 class AssetAPI {
     constructor() {
         // Ganti dengan Web App URL BARU Anda
-        this.scriptURL = 'https://script.google.com/macros/s/AKfycbxTqNj5X8s9X7w6vYk2Jm3n1oP7qR9sT2uV4wX6yZ8cF0dEg/exec';
+        this.scriptURL = 'https://script.google.com/macros/s/AKfycbyYap5f6DyDhthMN0crl0vJA8r81AiExvmJj7BrOO1CGrTuqBy2Fp0voK6RecCw4EuC/exec';
         
         // PASTIKAN INI FALSE
         this.isDevelopment = false;
