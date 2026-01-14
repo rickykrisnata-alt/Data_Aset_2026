@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Pendataan Aset Sekolah</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Font Awesome untuk icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- API Integration -->
+    <script src="api.js"></script>
+    
+    <style>
+        /* Custom styling untuk dropdown */
+        .dropdown-content {
+            display: none;
+        }
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+        
+        /* Animasi loading */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        
+        /* Styling untuk camera preview */
+        #cameraPreview {
+            transform: scaleX(-1);
+        }
+        
+        /* Responsive image */
+        .img-preview {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div x-data="assetManager()" x-init="init()" class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-school text-3xl"></i>
+                        <div>
+                            <h1 class="text-2xl font-bold">Sistem Pendataan Aset Sekolah</h1>
+                            <p class="text-blue-100 text-sm">Pencatatan aset sekolah yang terintegrasi dengan Google Sheets</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span class="text-sm bg-blue-700 px-3 py-1 rounded-full">
+                            <i class="fas fa-users mr-1"></i>
+                            <span x-text="activeUsers"></span> Pengguna Aktif
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="container mx-auto px-4 py-8">
+            <!-- Alert Messages -->
+            <div x-show="alert.show" 
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 transform translate-y-2"
+                 x-transition:enter-end="opacity-100 transform translate-y-0"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 class="mb-6">
+                <div :class="alert.type === 'success' ? 'bg-green-100 border-green-400 text-green-700' : 
+                           alert.type === 'error' ? 'bg-red-100 border-red-400 text-red-700' : 
+                           'bg-blue-100 border-blue-400 text-blue-700'"
+                     class="border px-4 py-3 rounded-lg relative" role="alert">
+                    <span class="block sm:inline" x-text="alert.message"></span>
+                    <button @click="alert.show = false" class="absolute top-0 bottom-0 right-0 px-4 py-3">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Form Section -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-semibold text-gray-800">
+                        <i class="fas fa-plus-circle text-blue-600 mr-2"></i>
+                        Tambah Data Aset Baru
+                    </h2>
+                    <div class="text-sm text-gray-500">
+                        <i class="fas fa-hashtag mr-1"></i>
+                        Nomor Item: <span x-text="formData.nomorItem" class="font-mono font-bold text-blue-600"></span>
+                    </div>
+                </div>
+
+                <form @submit.prevent="submitForm()" class="space-y-6">
+                    <!-- Row 1: Tanggal dan Nomor Item -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-calendar mr-1"></i> Tanggal
+                            </label>
+                            <input type="date" 
+                                   x-model="formData.tanggal"
+                                   required
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-hashtag mr-1"></i> Nomor Item
+                            </label>
+                            <input type="text" 
+                                   x-model="formData.nomorItem"
+                                   readonly
+                                   class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg font-mono font-bold text-blue-600">
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Nama Item dan Jenis Item -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-tag mr-1"></i> Nama Item
+                            </label>
+                            <input type="text" 
+                                   x-model="formData.namaItem"
+                                   required
+                                   placeholder="Masukkan nama aset"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-list mr-1"></i> Jenis Item
+                            </label>
+                            <select x-model="formData.jenisItem"
+                                    required
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                                <option value="">-- Pilih Jenis Item --</option>
+                                <option value="elektronik">Elektronik</option>
+                                <option value="mesin">Mesin</option>
+                                <option value="komputer">Komputer</option>
+                                <option value="perkakas">Perkakas</option>
+                                <option value="buku">Buku</option>
+                                <option value="mebeler">Mebeler</option>
+                                <option value="MEDIA Belajar">MEDIA Belajar</option>
+                                <option value="Alat Seni">Alat Seni</option>
+                                <option value="Alat Olah raga">Alat Olah raga</option>
+                                <option value="Kesehatan">Kesehatan</option>
+                                <option value="lainnya">Lainnya</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Kondisi dan Bahan -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-clipboard-check mr-1"></i> Kondisi
+                            </label>
+                            <select x-model="formData.kondisi"
+                                    required
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                                <option value="">-- Pilih Kondisi --</option>
+                                <option value="baru">Baru</option>
+                                <option value="baik">Baik</option>
+                                <option value="rusak ringan">Rusak Ringan</option>
+                                <option value="rusak parah">Rusak Parah</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-cube mr-1"></i> Bahan
+                            </label>
+                            <select x-model="formData.bahan"
+                                    required
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                                <option value="">-- Pilih Bahan --</option>
+                                <option value="metal">Metal</option>
+                                <option value="plastik">Plastik</option>
+                                <option value="kayu">Kayu</option>
+                                <option value="kertas">Kertas</option>
+                                <option value="lainnya">Lainnya</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Row 4: Gedung dan Ruang -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-building mr-1"></i> Gedung
+                            </label>
+                            <select x-model="formData.gedung"
+                                    required
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                                <option value="">-- Pilih Gedung --</option>
+                                <option value="gedung 1">Gedung 1</option>
+                                <option value="gedung 2">Gedung 2</option>
+                                <option value="gedung 3">Gedung 3</option>
+                                <option value="gedung 4">Gedung 4</option>
+                                <option value="gedung 5">Gedung 5</option>
+                                <option value="gedung 6">Gedung 6</option>
+                                <option value="gedung 7">Gedung 7</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-door-open mr-1"></i> Ruang
+                            </label>
+                            <select x-model="formData.ruang"
+                                    required
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                                <option value="">-- Pilih Ruang --</option>
+                                <option value="ruang 1">Ruang 1</option>
+                                <option value="ruang 2">Ruang 2</option>
+                                <option value="ruang 3">Ruang 3</option>
+                                <option value="ruang 4">Ruang 4</option>
+                                <option value="ruang 5">Ruang 5</option>
+                                <option value="ruang 6">Ruang 6</option>
+                                <option value="ruang 7">Ruang 7</option>
+                                <option value="ruang 8">Ruang 8</option>
+                                <option value="ruang 9">Ruang 9</option>
+                                <option value="ruang 10">Ruang 10</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Row 5: Rak dan Pencatat -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-archive mr-1"></i> Rak
+                            </label>
+                            <input type="text" 
+                                   x-model="formData.rak"
+                                   placeholder="Masukkan nomor/kode rak"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-user-edit mr-1"></i> Pencatat
+                            </label>
+                            <select x-model="formData.pencatat"
+                                    required
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                                <option value="">-- Pilih Pencatat --</option>
+                                <option value="Ludiah Liling, S.Pd">Ludiah Liling, S.Pd</option>
+                                <option value="Riang Ardiansyah, S.Pd.I">Riang Ardiansyah, S.Pd.I</option>
+                                <option value="Irwan, S.Pd">Irwan, S.Pd</option>
+                                <option value="Sudin Lan, S. Pd">Sudin Lan, S. Pd</option>
+                                <option value="Gracella Feybe Everia Wuisan,S.Pd">Gracella Feybe Everia Wuisan,S.Pd</option>
+                                <option value="Yosep, S.Pd">Yosep, S.Pd</option>
+                                <option value="NUR REZKY, S. Pd">NUR REZKY, S. Pd</option>
+                                <option value="Selpiani Tumba' Limbong S.L, S.Pd.SD">Selpiani Tumba' Limbong S.L, S.Pd.SD</option>
+                                <option value="Nofiafi Ngau, S.Pd">Nofiafi Ngau, S.Pd</option>
+                                <option value="HASNI, S.Pd">HASNI, S.Pd</option>
+                                <option value="Nursaidah">Nursaidah</option>
+                                <option value="Nurjannah">Nurjannah</option>
+                                <option value="Noriati Anyie,S.E">Noriati Anyie,S.E</option>
+                                <option value="Jamaluddin, S.Pd">Jamaluddin, S.Pd</option>
+                                <option value="Greisye Dian Marulia Wuisan, S.A.P">Greisye Dian Marulia Wuisan, S.A.P</option>
+                                <option value="Denia Pitri Udau, SE">Denia Pitri Udau, SE</option>
+                                <option value="Ricki Krisnata">Ricki Krisnata</option>
+                                <option value="Ismail">Ismail</option>
+                                <option value="Muhamad Sirih">Muhamad Sirih</option>
+                                <option value="James Roymond Tommy HW, S.Pd">James Roymond Tommy HW, S.Pd</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Row 6: Keterangan/Deskripsi -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-comment-alt mr-1"></i> Keterangan/Deskripsi
+                        </label>
+                        <textarea x-model="formData.keterangan"
+                                  rows="3"
+                                  placeholder="Masukkan keterangan atau deskripsi tambahan"
+                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"></textarea>
+                    </div>
+
+                    <!-- Photo Section -->
+                    <div class="border-t pt-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                            <i class="fas fa-camera text-blue-600 mr-2"></i>
+                            Foto Aset
+                        </h3>
+                        
+                        <!-- Camera Controls -->
+                        <div class="space-y-4">
+                            <!-- Camera Preview -->
+                            <div x-show="showCamera" class="relative">
+                                <video id="cameraPreview" class="w-full rounded-lg border-2 border-gray-300" autoplay></video>
+                                <canvas id="photoCanvas" class="hidden"></canvas>
+                                
+                                <!-- Camera Controls -->
+                                <div class="flex justify-center space-x-4 mt-4">
+                                    <button type="button" 
+                                            @click="capturePhoto()"
+                                            class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                                        <i class="fas fa-camera mr-2"></i> Ambil Foto
+                                    </button>
+                                    <button type="button" 
+                                            @click="stopCamera()"
+                                            class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors">
+                                        <i class="fas fa-stop mr-2"></i> Stop Kamera
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Photo Preview -->
+                            <div x-show="photoPreview" class="space-y-4">
+                                <div class="relative">
+                                    <img :src="photoPreview" alt="Preview Foto" class="w-full rounded-lg border-2 border-gray-300 img-preview">
+                                    <button type="button" 
+                                            @click="removePhoto()"
+                                            class="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition-colors">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                                <div class="text-sm text-gray-600">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Ukuran foto: <span x-text="photoSize"></span> MB
+                                </div>
+                            </div>
+
+                            <!-- Camera/Upload Buttons -->
+                            <div x-show="!showCamera && !photoPreview" class="flex flex-col sm:flex-row gap-4">
+                                <button type="button" 
+                                        @click="startCamera()"
+                                        class="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors">
+                                    <i class="fas fa-camera mr-2"></i> Buka Kamera
+                                </button>
+                                <div class="flex-1 relative">
+                                    <input type="file" 
+                                           @change="handleFileUpload($event)"
+                                           accept="image/*"
+                                           class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                                    <div class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors text-center cursor-pointer">
+                                        <i class="fas fa-upload mr-2"></i> Upload Foto
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="border-t pt-6">
+                        <button type="submit" 
+                                :disabled="loading"
+                                class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+                            <span x-show="!loading">
+                                <i class="fas fa-save mr-2"></i> Simpan Data Aset
+                            </span>
+                            <span x-show="loading">
+                                <i class="fas fa-spinner animate-spin mr-2"></i> Menyimpan...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Recent Data Table -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-6">
+                    <i class="fas fa-table text-blue-600 mr-2"></i>
+                    Data Aset Terbaru
+                </h2>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nomor Item</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Item</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kondisi</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pencatat</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Foto</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <template x-for="item in recentData" :key="item.nomorItem">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="item.no"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="item.tanggal"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-mono font-bold text-blue-600" x-text="item.nomorItem"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="item.namaItem"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="item.jenisItem"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <span :class="getKondisiClass(item.kondisi)" 
+                                              x-text="item.kondisi"
+                                              class="px-2 py-1 text-xs rounded-full"></span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="item.pencatat"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <a x-show="item.foto" 
+                                           :href="item.foto" 
+                                           target="_blank"
+                                           class="text-blue-600 hover:text-blue-800">
+                                            <i class="fas fa-image"></i>
+                                        </a>
+                                        <span x-show="!item.foto" class="text-gray-400">
+                                            <i class="fas fa-image"></i>
+                                        </span>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                    
+                    <div x-show="recentData.length === 0" class="text-center py-8 text-gray-500">
+                        <i class="fas fa-inbox text-4xl mb-2"></i>
+                        <p>Belum ada data aset yang tercatat</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-800 text-white mt-12">
+            <div class="container mx-auto px-4 py-6">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="mb-4 md:mb-0">
+                        <p class="text-sm">&copy; 2024 Sistem Pendataan Aset Sekolah. All rights reserved.</p>
+                    </div>
+                    <div class="flex items-center space-x-4 text-sm">
+                        <span><i class="fas fa-database mr-1"></i> Google Sheets</span>
+                        <span><i class="fas fa-cloud mr-1"></i> Google Drive</span>
+                        <span><i class="fas fa-code mr-1"></i> Google Apps Script</span>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        function assetManager() {
+            return {
+                loading: false,
+                showCamera: false,
+                photoPreview: null,
+                photoSize: 0,
+                photoBlob: null,
+                activeUsers: Math.floor(Math.random() * 5) + 1,
+                alert: {
+                    show: false,
+                    type: 'info',
+                    message: ''
+                },
+                formData: {
+                    tanggal: new Date().toISOString().split('T')[0],
+                    nomorItem: '',
+                    namaItem: '',
+                    jenisItem: '',
+                    kondisi: '',
+                    bahan: '',
+                    gedung: '',
+                    ruang: '',
+                    rak: '',
+                    pencatat: '',
+                    keterangan: '',
+                    foto: ''
+                },
+                recentData: [],
+                stream: null,
+                api: null,
+
+                init() {
+                    // Initialize API
+                    this.api = new AssetAPI();
+                    
+                    this.generateNomorItem();
+                    this.loadRecentData();
+                    this.simulateActiveUsers();
+                },
+
+                async generateNomorItem() {
+                    try {
+                        const response = await this.api.generateNomorItem();
+                        if (response.success) {
+                            this.formData.nomorItem = response.nomorItem;
+                        } else {
+                            // Fallback to local generation
+                            const random = Math.floor(Math.random() * 1000000);
+                            this.formData.nomorItem = random.toString().padStart(6, '0');
+                        }
+                    } catch (error) {
+                        console.error('Error generating nomor item:', error);
+                        // Fallback to local generation
+                        const random = Math.floor(Math.random() * 1000000);
+                        this.formData.nomorItem = random.toString().padStart(6, '0');
+                    }
+                },
+
+                async startCamera() {
+                    try {
+                        this.stream = await navigator.mediaDevices.getUserMedia({ 
+                            video: { 
+                                width: { ideal: 1280 },
+                                height: { ideal: 720 }
+                            } 
+                        });
+                        
+                        const video = document.getElementById('cameraPreview');
+                        video.srcObject = this.stream;
+                        this.showCamera = true;
+                        
+                        this.showAlert('success', 'Kamera berhasil dibuka');
+                    } catch (error) {
+                        this.showAlert('error', 'Tidak dapat mengakses kamera: ' + error.message);
+                    }
+                },
+
+                stopCamera() {
+                    if (this.stream) {
+                        this.stream.getTracks().forEach(track => track.stop());
+                        this.stream = null;
+                    }
+                    this.showCamera = false;
+                },
+
+                capturePhoto() {
+                    const video = document.getElementById('cameraPreview');
+                    const canvas = document.getElementById('photoCanvas');
+                    const context = canvas.getContext('2d');
+                    
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    context.drawImage(video, 0, 0);
+                    
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            this.processPhotoBlob(blob);
+                        }
+                    }, 'image/jpeg', 0.8);
+                    
+                    this.stopCamera();
+                },
+
+                handleFileUpload(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        if (file.size > 3 * 1024 * 1024) {
+                            this.showAlert('error', 'Ukuran file terlalu besar. Maksimal 3MB.');
+                            return;
+                        }
+                        
+                        this.processPhotoBlob(file);
+                    }
+                },
+
+                processPhotoBlob(blob) {
+                    // Check size and compress if needed
+                    if (blob.size > 3 * 1024 * 1024) {
+                        this.compressImage(blob, 0.7);
+                    } else {
+                        this.setPhotoPreview(blob);
+                    }
+                },
+
+                compressImage(blob, quality) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            
+                            // Calculate new dimensions
+                            let width = img.width;
+                            let height = img.height;
+                            const maxSize = 1920;
+                            
+                            if (width > height) {
+                                if (width > maxSize) {
+                                    height *= maxSize / width;
+                                    width = maxSize;
+                                }
+                            } else {
+                                if (height > maxSize) {
+                                    width *= maxSize / height;
+                                    height = maxSize;
+                                }
+                            }
+                            
+                            canvas.width = width;
+                            canvas.height = height;
+                            ctx.drawImage(img, 0, 0, width, height);
+                            
+                            canvas.toBlob((compressedBlob) => {
+                                if (compressedBlob.size > 3 * 1024 * 1024 && quality > 0.3) {
+                                    this.compressImage(blob, quality - 0.1);
+                                } else {
+                                    this.setPhotoPreview(compressedBlob);
+                                }
+                            }, 'image/jpeg', quality);
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(blob);
+                },
+
+                setPhotoPreview(blob) {
+                    this.photoBlob = blob;
+                    this.photoSize = (blob.size / (1024 * 1024)).toFixed(2);
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        this.photoPreview = e.target.result;
+                    };
+                    reader.readAsDataURL(blob);
+                    
+                    this.showAlert('success', `Foto berhasil ditambahkan (${this.photoSize} MB)`);
+                },
+
+                removePhoto() {
+                    this.photoPreview = null;
+                    this.photoBlob = null;
+                    this.photoSize = 0;
+                    this.formData.foto = '';
+                },
+
+                async submitForm() {
+                    this.loading = true;
+                    
+                    try {
+                        // Upload photo if exists
+                        if (this.photoBlob) {
+                            const photoUrl = await this.uploadPhoto(this.photoBlob);
+                            this.formData.foto = photoUrl;
+                        }
+                        
+                        // Save to Google Sheets via Google Apps Script
+                        const response = await this.saveToGoogleSheets(this.formData);
+                        
+                        if (response.success) {
+                            this.showAlert('success', 'Data aset berhasil disimpan!');
+                            this.resetForm();
+                            this.loadRecentData();
+                        } else {
+                            this.showAlert('error', 'Gagal menyimpan data: ' + response.message);
+                        }
+                    } catch (error) {
+                        this.showAlert('error', 'Terjadi kesalahan: ' + error.message);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async uploadPhoto(blob) {
+                    try {
+                        // Convert blob to base64
+                        const base64Data = await this.api.fileToBase64(blob);
+                        const fileName = `asset_${this.formData.nomorItem}_${Date.now()}.jpg`;
+                        
+                        const response = await this.api.uploadPhoto(base64Data, fileName, 'image/jpeg');
+                        
+                        if (response.success) {
+                            return response.fileUrl;
+                        } else {
+                            throw new Error(response.message || 'Failed to upload photo');
+                        }
+                    } catch (error) {
+                        console.error('Error uploading photo:', error);
+                        throw error;
+                    }
+                },
+
+                async saveToGoogleSheets(data) {
+                    try {
+                        // Validate data before sending
+                        const errors = this.api.validateAssetData(data);
+                        if (errors.length > 0) {
+                            throw new Error('Validation error: ' + errors.join(', '));
+                        }
+                        
+                        const response = await this.api.saveAsset(data);
+                        
+                        if (response.success) {
+                            return response;
+                        } else {
+                            throw new Error(response.message || 'Failed to save data');
+                        }
+                    } catch (error) {
+                        console.error('Error saving to Google Sheets:', error);
+                        throw error;
+                    }
+                },
+
+                resetForm() {
+                    this.formData = {
+                        tanggal: new Date().toISOString().split('T')[0],
+                        nomorItem: '',
+                        namaItem: '',
+                        jenisItem: '',
+                        kondisi: '',
+                        bahan: '',
+                        gedung: '',
+                        ruang: '',
+                        rak: '',
+                        pencatat: '',
+                        keterangan: '',
+                        foto: ''
+                    };
+                    this.photoPreview = null;
+                    this.photoBlob = null;
+                    this.photoSize = 0;
+                    this.generateNomorItem();
+                },
+
+                async loadRecentData() {
+                    try {
+                        const response = await this.api.getRecentAssets(10);
+                        
+                        if (response.success) {
+                            this.recentData = response.data;
+                        } else {
+                            console.error('Failed to load recent data:', response.message);
+                            // Fallback to empty array
+                            this.recentData = [];
+                        }
+                    } catch (error) {
+                        console.error('Error loading recent data:', error);
+                        // Fallback to empty array
+                        this.recentData = [];
+                    }
+                },
+
+                getKondisiClass(kondisi) {
+                    switch(kondisi) {
+                        case 'baru': return 'bg-green-100 text-green-800';
+                        case 'baik': return 'bg-blue-100 text-blue-800';
+                        case 'rusak ringan': return 'bg-yellow-100 text-yellow-800';
+                        case 'rusak parah': return 'bg-red-100 text-red-800';
+                        default: return 'bg-gray-100 text-gray-800';
+                    }
+                },
+
+                showAlert(type, message) {
+                    this.alert = {
+                        show: true,
+                        type: type,
+                        message: message
+                    };
+                    
+                    setTimeout(() => {
+                        this.alert.show = false;
+                    }, 5000);
+                },
+
+                simulateActiveUsers() {
+                    setInterval(() => {
+                        this.activeUsers = Math.floor(Math.random() * 5) + 1;
+                    }, 30000);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
