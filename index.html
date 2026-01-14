@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Pendataan Aset Sekolah - GitHub Pages Version</title>
+    <title>Sistem Pendataan Aset Sekolah - CORS Fixed Version</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -67,16 +67,16 @@
         </div>
     </header>
 
-    <!-- Configuration Alert -->
-    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 m-4" x-show="!isConfigured">
+    <!-- CORS Alert -->
+    <div class="bg-red-50 border-l-4 border-red-400 p-4 m-4" x-show="corsIssue">
         <div class="flex">
             <div class="flex-shrink-0">
-                <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                <i class="fas fa-exclamation-triangle text-red-400"></i>
             </div>
             <div class="ml-3">
-                <p class="text-sm text-yellow-700">
-                    <strong>Perlu Konfigurasi:</strong> Update Google Apps Script URL di file ini. 
-                    Lihat <a href="#setup" class="underline">panduan setup</a> di bagian bawah.
+                <p class="text-sm text-red-700">
+                    <strong>CORS Issue Detected:</strong> Menggunakan mode alternatif untuk mengatasi masalah CORS.
+                    <button @click="corsIssue = false" class="ml-2 text-red-600 underline">Dismiss</button>
                 </p>
             </div>
         </div>
@@ -306,63 +306,6 @@
                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
                     </div>
 
-                    <!-- Foto -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            <i class="fas fa-camera mr-1"></i>Foto Aset
-                        </label>
-                        <div class="space-y-3">
-                            <div class="flex flex-wrap gap-3">
-                                <input type="file" x-ref="fileInput" @change="handleFileSelect($event)" 
-                                       accept="image/*" capture="environment" class="hidden">
-                                <button type="button" @click="$refs.fileInput.click()"
-                                        class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200">
-                                    <i class="fas fa-camera mr-2"></i>Ambil Foto
-                                </button>
-                                <button type="button" @click="openCamera()"
-                                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200">
-                                    <i class="fas fa-video mr-2"></i>Buka Kamera
-                                </button>
-                            </div>
-                            
-                            <!-- Preview Foto -->
-                            <div x-show="formData.fotoPreview" class="mt-3">
-                                <img :src="formData.fotoPreview" alt="Preview" class="max-w-full h-48 object-cover rounded-md shadow-md">
-                                <div class="mt-2 flex items-center justify-between">
-                                    <span class="text-sm text-gray-600" x-text="formData.fotoSize"></span>
-                                    <button type="button" @click="removePhoto()" 
-                                            class="text-red-600 hover:text-red-800 text-sm">
-                                        <i class="fas fa-trash mr-1"></i>Hapus Foto
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <!-- Camera Modal -->
-                            <div x-show="showCamera" x-transition class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-                                <div class="bg-white rounded-lg p-4 max-w-md w-full mx-4">
-                                    <div class="flex justify-between items-center mb-4">
-                                        <h3 class="text-lg font-semibold">Kamera</h3>
-                                        <button @click="closeCamera()" class="text-gray-500 hover:text-gray-700">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                    <video x-ref="video" class="w-full rounded-md mb-4" autoplay></video>
-                                    <canvas x-ref="canvas" class="hidden"></canvas>
-                                    <div class="flex justify-center space-x-3">
-                                        <button @click="capturePhoto()" 
-                                                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                                            <i class="fas fa-camera mr-2"></i>Capture
-                                        </button>
-                                        <button @click="closeCamera()" 
-                                                class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">
-                                            <i class="fas fa-times mr-2"></i>Batal
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Submit Button -->
                     <div class="flex justify-end space-x-3 pt-4 border-t">
                         <button type="button" @click="resetForm()" 
@@ -420,7 +363,6 @@
                                 <th class="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rak</th>
                                 <th class="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pencatat</th>
                                 <th class="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
-                                <th class="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Foto</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
@@ -428,10 +370,10 @@
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-2 py-3 text-sm text-gray-900" x-text="index + 1"></td>
                                     <td class="px-2 py-3 text-sm text-gray-900" x-text="item.tanggal"></td>
-                                    <td class="px-2 py-3 text-sm font-medium text-gray-900" x-text="item.nomorItem"></td>
-                                    <td class="px-2 py-3 text-sm text-gray-900" x-text="item.namaItem"></td>
+                                    <td class="px-2 py-3 text-sm font-medium text-gray-900" x-text="item.nomoritem"></td>
+                                    <td class="px-2 py-3 text-sm text-gray-900" x-text="item.namaitem"></td>
                                     <td class="px-2 py-3 text-sm text-gray-900">
-                                        <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800" x-text="item.jenisItem"></span>
+                                        <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800" x-text="item.jenisitem"></span>
                                     </td>
                                     <td class="px-2 py-3 text-sm text-gray-900">
                                         <span :class="getKondisiClass(item.kondisi)" x-text="item.kondisi"></span>
@@ -441,13 +383,7 @@
                                     <td class="px-2 py-3 text-sm text-gray-900" x-text="item.ruang"></td>
                                     <td class="px-2 py-3 text-sm text-gray-900" x-text="item.rak"></td>
                                     <td class="px-2 py-3 text-sm text-gray-900" x-text="item.pencatat"></td>
-                                    <td class="px-2 py-3 text-sm text-gray-900" x-text="item.keterangan"></td>
-                                    <td class="px-2 py-3 text-sm text-gray-900">
-                                        <a x-show="item.foto" :href="item.foto" target="_blank" 
-                                           class="text-blue-600 hover:text-blue-800">
-                                            <i class="fas fa-image"></i>
-                                        </a>
-                                    </td>
+                                    <td class="px-2 py-3 text-sm text-gray-900" x-text="item.keterangandeskripsi"></td>
                                 </tr>
                             </template>
                         </tbody>
@@ -489,11 +425,11 @@
                             </div>
                             <div class="flex items-center">
                                 <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                                <span>Hosting: GitHub Pages ✅</span>
+                                <span>Mode: <span x-text="useProxy ? 'CORS Proxy' : 'Direct'"></span></span>
                             </div>
                             <div class="flex items-center">
                                 <i class="fas fa-shield-alt text-green-500 mr-2"></i>
-                                <span>CORS: Configured for GitHub Pages ✅</span>
+                                <span>CORS Fix: <span x-text="corsIssue ? 'Active' : 'Not Needed'"></span></span>
                             </div>
                         </div>
                     </div>
@@ -512,14 +448,11 @@
                                 </p>
                             </div>
                             
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Spreadsheet ID (Optional)</label>
-                                <input type="text" x-model="config.spreadsheetId" 
-                                       placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <p class="text-sm text-gray-600 mt-1">
-                                    Untuk direct access ke Google Sheet (opsional)
-                                </p>
+                            <div class="flex items-center space-x-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" x-model="useProxy" @change="toggleProxy()" class="mr-2">
+                                    <span class="text-sm">Use CORS Proxy (jika direct connection gagal)</span>
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -537,42 +470,19 @@
                             </button>
                             
                             <div x-show="testResult" class="p-3 rounded-md" :class="testResult.success ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'">
-                                <div class="flex items-center">
-                                    <i :class="testResult.success ? 'fas fa-check-circle text-green-600' : 'fas fa-exclamation-circle text-red-600'" class="mr-2"></i>
-                                    <span x-text="testResult.message"></span>
+                                <div class="flex items-start">
+                                    <i :class="testResult.success ? 'fas fa-check-circle text-green-600' : 'fas fa-exclamation-circle text-red-600'" class="mr-2 mt-1"></i>
+                                    <div class="flex-1">
+                                        <div class="font-medium" x-text="testResult.message"></div>
+                                        <div x-show="testResult.details" class="text-sm mt-1 opacity-75" x-text="testResult.details"></div>
+                                        <div x-show="testResult.solution" class="text-sm mt-2 p-2 bg-white bg-opacity-50 rounded border">
+                                            <strong>Solution:</strong>
+                                            <div x-text="testResult.solution"></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Debug Information -->
-                    <div class="border-l-4 border-purple-500 pl-4">
-                        <h3 class="font-semibold text-lg mb-2">Debug Information</h3>
-                        <div class="bg-gray-50 p-4 rounded-md">
-                            <h4 class="font-medium mb-2">Current Configuration:</h4>
-                            <pre class="text-xs bg-white p-2 rounded border overflow-x-auto" x-text="JSON.stringify(config, null, 2)"></pre>
-                            
-                            <h4 class="font-medium mb-2 mt-4">Browser Console:</h4>
-                            <p class="text-sm text-gray-600">Buka browser console (F12) untuk melihat detail error</p>
-                            
-                            <button @click="clearDebugInfo()" class="mt-2 text-sm text-blue-600 hover:text-blue-800">
-                                <i class="fas fa-trash mr-1"></i>Clear Debug Info
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Setup Instructions -->
-                    <div class="bg-blue-50 p-4 rounded-md">
-                        <h3 class="font-semibold text-lg mb-2">📋 Setup Instructions</h3>
-                        <ol class="list-decimal list-inside space-y-2 text-sm">
-                            <li>Buka <a href="https://script.google.com" target="_blank" class="text-blue-600 hover:underline">Google Apps Script</a></li>
-                            <li>Buat project baru dan copy paste <code>Code.gs</code></li>
-                            <li>Update konfigurasi di <code>Code.gs</code> (SPREADSHEET_ID, FOLDER_ID)</li>
-                            <li>Deploy sebagai Web App dengan access "Anyone"</li>
-                            <li>Copy Web App URL dan paste di form di atas</li>
-                            <li>Test koneksi dengan tombol "Test Koneksi"</li>
-                            <li>Simpan data untuk memastikan semua berfungsi</li>
-                        </ol>
                     </div>
                 </div>
             </div>
@@ -599,7 +509,7 @@
         <div class="container mx-auto px-4 py-6">
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <div class="mb-4 md:mb-0">
-                    <p class="text-sm">© 2024 Sistem Pendataan Aset Sekolah - GitHub Pages Version</p>
+                    <p class="text-sm">© 2024 Sistem Pendataan Aset Sekolah - CORS Fixed Version</p>
                 </div>
                 <div class="flex items-center space-x-4">
                     <span class="text-sm">
@@ -623,10 +533,11 @@
                 activeUsers: Math.floor(Math.random() * 5) + 1,
                 isSubmitting: false,
                 isLoading: false,
-                showCamera: false,
                 searchTerm: '',
                 isTesting: false,
                 isConfigured: false,
+                corsIssue: false,
+                useProxy: false,
                 message: {
                     show: false,
                     type: 'success',
@@ -634,8 +545,7 @@
                 },
                 testResult: null,
                 config: {
-                    scriptUrl: '',
-                    spreadsheetId: ''
+                    scriptUrl: ''
                 },
                 formData: {
                     tanggal: new Date().toISOString().split('T')[0],
@@ -648,10 +558,7 @@
                     ruang: '',
                     rak: '',
                     pencatat: '',
-                    keterangan: '',
-                    foto: null,
-                    fotoPreview: '',
-                    fotoSize: ''
+                    keterangan: ''
                 },
                 assetData: [],
                 filteredData: [],
@@ -684,6 +591,22 @@
                     this.isConfigured = this.config.scriptUrl && this.config.scriptUrl.includes('script.google.com');
                 },
                 
+                toggleProxy() {
+                    this.corsIssue = this.useProxy;
+                    this.saveConfig();
+                },
+                
+                getApiUrl(action) {
+                    const baseUrl = this.config.scriptUrl;
+                    const timestamp = Date.now();
+                    
+                    if (this.useProxy) {
+                        return `https://cors-anywhere.herokuapp.com/${baseUrl}?action=${action}&t=${timestamp}`;
+                    } else {
+                        return `${baseUrl}?action=${action}&t=${timestamp}`;
+                    }
+                },
+                
                 async testConnection() {
                     if (!this.isConfigured) {
                         this.showMessage('Please configure Google Apps Script URL first', 'error');
@@ -694,35 +617,61 @@
                     this.testResult = null;
                     
                     try {
-                        const testUrl = `${this.config.scriptUrl}?action=test&t=${Date.now()}`;
+                        const testUrl = this.getApiUrl('test');
+                        console.log('Testing connection to:', testUrl);
                         
-                        // Add CORS workaround for GitHub Pages
                         const response = await fetch(testUrl, {
                             method: 'GET',
-                            mode: 'cors',
+                            mode: this.useProxy ? 'cors' : 'cors',
                             headers: {
                                 'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
                             }
                         });
                         
+                        console.log('Response status:', response.status);
+                        
                         if (response.ok) {
                             const result = await response.json();
+                            console.log('Test response:', result);
+                            
                             this.testResult = {
                                 success: true,
-                                message: '✅ Koneksi berhasil! Google Apps Script merespon dengan baik.'
+                                message: '✅ Koneksi berhasil! Google Apps Script merespon dengan baik.',
+                                details: `Mode: ${this.useProxy ? 'CORS Proxy' : 'Direct'}`
                             };
                         } else {
+                            const errorText = await response.text();
+                            console.error('Test error response:', errorText);
                             this.testResult = {
                                 success: false,
-                                message: `❌ Error ${response.status}: ${response.statusText}`
+                                message: `❌ Error ${response.status}: ${response.statusText}`,
+                                details: errorText
                             };
                         }
                     } catch (error) {
                         console.error('Connection test error:', error);
-                        this.testResult = {
-                            success: false,
-                            message: `❌ Koneksi gagal: ${error.message}. Pastikan Web App sudah di-deploy dengan access "Anyone".`
-                        };
+                        
+                        if (!this.useProxy && (error.message.includes('CORS') || error.message.includes('Cross-Origin'))) {
+                            // Auto-enable CORS proxy
+                            this.useProxy = true;
+                            this.corsIssue = true;
+                            this.saveConfig();
+                            
+                            this.testResult = {
+                                success: false,
+                                message: `❌ CORS Error: Mengaktifkan CORS Proxy otomatis.`,
+                                details: `Error: ${error.message}`,
+                                solution: 'Coba test koneksi lagi. Jika masih gagal, periksa Web App deployment.'
+                            };
+                        } else {
+                            this.testResult = {
+                                success: false,
+                                message: `❌ Koneksi gagal: ${error.message}`,
+                                details: `Mode: ${this.useProxy ? 'CORS Proxy' : 'Direct'}`,
+                                solution: 'Check Web App URL dan deployment settings'
+                            };
+                        }
                     } finally {
                         this.isTesting = false;
                     }
@@ -731,76 +680,6 @@
                 generateNomorItem() {
                     const timestamp = Date.now().toString().slice(-6);
                     this.formData.nomorItem = timestamp;
-                },
-                
-                async handleFileSelect(event) {
-                    const file = event.target.files[0];
-                    if (file) {
-                        if (file.size > 3 * 1024 * 1024) {
-                            this.showMessage('Ukuran foto maksimal 3MB', 'error');
-                            return;
-                        }
-                        
-                        this.formData.foto = file;
-                        this.formData.fotoPreview = URL.createObjectURL(file);
-                        this.formData.fotoSize = this.formatFileSize(file.size);
-                    }
-                },
-                
-                async openCamera() {
-                    try {
-                        const stream = await navigator.mediaDevices.getUserMedia({ 
-                            video: { facingMode: 'environment' } 
-                        });
-                        this.$refs.video.srcObject = stream;
-                        this.showCamera = true;
-                    } catch (error) {
-                        this.showMessage('Tidak dapat mengakses kamera', 'error');
-                    }
-                },
-                
-                closeCamera() {
-                    if (this.$refs.video.srcObject) {
-                        this.$refs.video.srcObject.getTracks().forEach(track => track.stop());
-                    }
-                    this.showCamera = false;
-                },
-                
-                capturePhoto() {
-                    const video = this.$refs.video;
-                    const canvas = this.$refs.canvas;
-                    const context = canvas.getContext('2d');
-                    
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    context.drawImage(video, 0, 0);
-                    
-                    canvas.toBlob((blob) => {
-                        if (blob.size > 3 * 1024 * 1024) {
-                            this.showMessage('Ukuran foto terlalu besar, coba lagi', 'error');
-                            return;
-                        }
-                        
-                        this.formData.foto = blob;
-                        this.formData.fotoPreview = URL.createObjectURL(blob);
-                        this.formData.fotoSize = this.formatFileSize(blob.size);
-                        this.closeCamera();
-                    }, 'image/jpeg', 0.8);
-                },
-                
-                removePhoto() {
-                    this.formData.foto = null;
-                    this.formData.fotoPreview = '';
-                    this.formData.fotoSize = '';
-                    this.$refs.fileInput.value = '';
-                },
-                
-                formatFileSize(bytes) {
-                    if (bytes === 0) return '0 Bytes';
-                    const k = 1024;
-                    const sizes = ['Bytes', 'KB', 'MB'];
-                    const i = Math.floor(Math.log(bytes) / Math.log(k));
-                    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
                 },
                 
                 async submitForm() {
@@ -812,12 +691,11 @@
                     this.isSubmitting = true;
                     
                     try {
-                        // Create FormData for file upload
                         const formData = new FormData();
                         
                         // Add all form fields
                         Object.keys(this.formData).forEach(key => {
-                            if (key !== 'fotoPreview' && key !== 'fotoSize' && this.formData[key]) {
+                            if (this.formData[key]) {
                                 formData.append(key, this.formData[key]);
                             }
                         });
@@ -825,17 +703,15 @@
                         // Add action parameter
                         formData.append('action', 'saveData');
                         
-                        console.log('Submitting data to:', this.config.scriptUrl);
-                        console.log('Form data:', Object.fromEntries(formData));
+                        console.log('Submitting data to:', this.getApiUrl('saveData'));
                         
-                        const response = await fetch(this.config.scriptUrl, {
+                        const response = await fetch(this.getApiUrl('saveData'), {
                             method: 'POST',
                             body: formData,
-                            mode: 'cors'
+                            mode: this.useProxy ? 'cors' : 'cors'
                         });
                         
                         console.log('Response status:', response.status);
-                        console.log('Response headers:', response.headers);
                         
                         if (response.ok) {
                             const result = await response.json();
@@ -873,20 +749,13 @@
                         ruang: '',
                         rak: '',
                         pencatat: '',
-                        keterangan: '',
-                        foto: null,
-                        fotoPreview: '',
-                        fotoSize: ''
+                        keterangan: ''
                     };
                     this.generateNomorItem();
-                    if (this.$refs.fileInput) {
-                        this.$refs.fileInput.value = '';
-                    }
                 },
                 
                 async loadData() {
                     if (!this.isConfigured) {
-                        // Load demo data if not configured
                         this.loadDemoData();
                         return;
                     }
@@ -894,12 +763,12 @@
                     this.isLoading = true;
                     
                     try {
-                        const url = `${this.config.scriptUrl}?action=getData&t=${Date.now()}`;
+                        const url = this.getApiUrl('getData');
                         console.log('Loading data from:', url);
                         
                         const response = await fetch(url, {
                             method: 'GET',
-                            mode: 'cors'
+                            mode: this.useProxy ? 'cors' : 'cors'
                         });
                         
                         if (response.ok) {
@@ -928,17 +797,16 @@
                     this.assetData = [
                         {
                             tanggal: '2024-01-15',
-                            nomorItem: '123456',
-                            namaItem: 'Laptop ASUS',
-                            jenisItem: 'komputer',
+                            nomoritem: '123456',
+                            namaitem: 'Laptop ASUS',
+                            jenisitem: 'komputer',
                             kondisi: 'baik',
                             bahan: 'metal',
                             gedung: 'gedung 1',
                             ruang: 'ruang 3',
                             rak: 'A-1',
                             pencatat: 'Ludiah Liling, S.Pd',
-                            keterangan: 'Laptop untuk guru',
-                            foto: 'https://via.placeholder.com/100'
+                            keterangandeskripsi: 'Laptop untuk guru'
                         }
                     ];
                     this.filteredData = this.assetData;
@@ -978,14 +846,6 @@
                     setTimeout(() => {
                         this.message.show = false;
                     }, 5000);
-                },
-                
-                clearDebugInfo() {
-                    this.testResult = null;
-                    localStorage.removeItem('assetAppConfig');
-                    this.config = { scriptUrl: '', spreadsheetId: '' };
-                    this.updateConfigStatus();
-                    this.showMessage('Debug info cleared', 'success');
                 },
                 
                 simulateActiveUsers() {
